@@ -3,7 +3,7 @@ import requests, os
 
 app = Flask(__name__, static_folder="static")
 
-# Den API-Token über eine Umgebungsvariable setzen
+# Den API-Token über eine Umgebungsvariable setzen (z.B. FACTORIAL_API_TOKEN)
 API_TOKEN = os.environ.get('FACTORIAL_API_TOKEN', 'YOUR_API_TOKEN_HERE')
 HEADERS = {
     'accept': 'application/json',
@@ -26,21 +26,34 @@ LEAVE_MAPPING = {
     'Sonstiges': 'other'
 }
 
-@app.route("/fullnames")
-def fullnames():
-    return send_from_directory(app.static_folder, "fullnames.html")
-
+# Endpunkt für Mitarbeiter mit Kürzeln (Initialen)
 @app.route("/api/staff", methods=["GET"])
-def get_staff():
+def get_staff_initials():
     url = f"{BASE_URL}/resources/employees/employees?only_active=true&only_managers=false"
     response = requests.get(url, headers=HEADERS)
     data = response.json().get("data", [])
     staff = []
     for emp in data:
+        # Nur Initialen berechnen, sodass der volle Name NICHT übertragen wird
+        initials = (emp.get("first_name", "")[:1].upper() + emp.get("last_name", "")[:1].upper())
         staff.append({
             "staffId": emp.get("id"),
-            "firstName": emp.get("first_name"),
-            "lastName": emp.get("last_name")
+            "initials": initials
+        })
+    return jsonify({"data": staff})
+
+# Endpunkt für Mitarbeiter mit vollen Namen
+@app.route("/api/staff_full", methods=["GET"])
+def get_staff_full():
+    url = f"{BASE_URL}/resources/employees/employees?only_active=true&only_managers=false"
+    response = requests.get(url, headers=HEADERS)
+    data = response.json().get("data", [])
+    staff = []
+    for emp in data:
+        full_name = f"{emp.get('first_name','')} {emp.get('last_name','')}".strip()
+        staff.append({
+            "staffId": emp.get("id"),
+            "fullName": full_name
         })
     return jsonify({"data": staff})
 
@@ -55,7 +68,7 @@ def get_time_off():
     for record in data:
         staff_id = record.get("employee_id")
         leave_type = record.get("leave_type_name") or record.get("translated_name")
-        # "Home Office" behandeln wir separat – er soll nur den Remote-Indikator auslösen
+        # "Home Office" wird separat behandelt – löst nur den Remote-Indikator aus
         if leave_type == "Home Office":
             time_off.append({
                 "staffId": staff_id,
@@ -93,10 +106,15 @@ def get_presence():
         })
     return jsonify({"data": result})
 
-# Liefert das statische Frontend (dashboard.html)
+# Liefert das statische Frontend (z.B. dashboard_initials.html)
 @app.route("/")
 def index():
-    return send_from_directory(app.static_folder, "dashboard.html")
+    return send_from_directory(app.static_folder, "dashboard_initials.html")
+
+# Liefert das Frontend für volle Namen
+@app.route("/fullnames")
+def fullnames():
+    return send_from_directory(app.static_folder, "dashboard_full.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
