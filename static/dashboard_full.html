@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Mitarbeiter-Dashboard (Volle Namen)</title>
+  <style>
+    #datetime {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-family: sans-serif;
+      font-size: 1.2em;
+      color: #fff;
+      background-color: #222;
+      padding: 5px 10px;
+      border-radius: 4px;
+      z-index: 100;
+    }
+    #dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 80px 20px 20px 20px;
+    }
+    .employee-square {
+      width: 150px;
+      height: 150px;
+      margin: 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+      font-size: 1em;
+      color: white;
+      border-radius: 8px;
+      border: 3px solid gray;
+      background-color: #222;
+      text-align: center;
+      padding: 5px;
+    }
+    .employee-fullname {
+      z-index: 1;
+    }
+    .remote-indicator {
+      width: 20px;
+      height: 20px;
+      background-color: blue;
+      border-radius: 50%;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+  <div id="datetime">Lade Datum...</div>
+  <div id="dashboard">Lade Mitarbeiterdaten...</div>
+
+  <script>
+    function updateDateTime() {
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const timeStr = `${hours}:${minutes} Uhr`;
+      const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+      const weekday = weekdays[now.getDay()];
+      const day = String(now.getDate()).padStart(2, '0');
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const year = now.getFullYear();
+      const dateStr = `${day}.${month}.${year}`;
+      document.getElementById('datetime').textContent = `${timeStr}, ${weekday} ${dateStr}`;
+    }
+    updateDateTime();
+    setInterval(updateDateTime, 1000);
+
+    function getTodayStr() {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd}`;
+    }
+    const todayStr = getTodayStr();
+
+    // Neutrale Farben (wie im Dashboard mit Kürzeln)
+    const categoryColors = {
+      vacation: '#07A2AD',
+      sick: '#F5BA58',
+      overtime: '#008C37',
+      parental: '#FF9153',
+      other: '#E2E2E5'
+    };
+
+    const priorityOrder = ['sick', 'overtime', 'parental', 'vacation', 'other'];
+
+    async function fetchStaffFull() {
+      try {
+        const response = await fetch('/api/staff_full');
+        if (!response.ok) throw new Error('Fehler beim Abrufen der Staff-Daten: ' + response.status);
+        const json = await response.json();
+        return json.data;
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    }
+
+    async function fetchTimeOff() {
+      try {
+        const response = await fetch(`/api/time_off?from=${todayStr}&to=${todayStr}`);
+        if (!response.ok) throw new Error('Fehler beim Abrufen der Time-Off-Daten: ' + response.status);
+        const json = await response.json();
+        return json.data;
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    }
+
+    async function fetchPresence(staffIds) {
+      const params = new URLSearchParams();
+      staffIds.forEach(id => params.append('employee_ids[]', id));
+      try {
+        const response = await fetch('/api/presence?' + params.toString());
+        if (!response.ok) throw new Error('Fehler beim Abrufen der Presence-Daten: ' + response.status);
+        const json = await response.json();
+        return json.data;
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    }
+
+    async function updateDashboard() {
+      const staff = await fetchStaffFull();
+      const timeOffRecords = await fetchTimeOff();
+      const staffIds = staff.map(s => s.staffId);
+      const presenceData = await fetchPresence(staffIds);
+      const presenceMapping = {};
+      presenceData.forEach(rec => {
+        presenceMapping[rec.staffId] = rec.present;
+      });
+
+      const dashboard = document.getElementById('dashboard');
+      dashboard.innerHTML = '';
+
+      staff.forEach(s => {
+        const records = timeOffRecords.filter(r => r.staffId === s.staffId);
+        let chosenCategory = null;
+        let isHomeOffice = false;
+        records.forEach(r => {
+          if (r.isHomeOffice) {
+            isHomeOffice = true;
+          } else if (r.category) {
+            if (!chosenCategory || priorityOrder.indexOf(r.category) < priorityOrder.indexOf(chosenCategory)) {
+              chosenCategory = r.category;
+            }
+          }
+        });
+
+        const square = document.createElement('div');
+        square.className = 'employee-square';
+
+        if (presenceMapping[s.staffId]) {
+          square.style.backgroundColor = 'green';
+        } else {
+          square.style.backgroundColor = '#222';
+        }
+
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'employee-fullname';
+        nameSpan.textContent = s.fullName;
+        square.appendChild(nameSpan);
+
+        if (chosenCategory && categoryColors[chosenCategory]) {
+          square.style.borderColor = categoryColors[chosenCategory];
+          if (chosenCategory === 'sick') {
+            square.style.borderWidth = '6px';
+          } else {
+            square.style.borderWidth = '3px';
+          }
+        } else {
+          square.style.borderWidth = '3px';
+        }
+
+        if (isHomeOffice) {
+          const remoteIndicator = document.createElement('div');
+          remoteIndicator.className = 'remote-indicator';
+          square.appendChild(remoteIndicator);
+        }
+
+        dashboard.appendChild(square);
+      });
+    }
+
+    updateDashboard();
+    setInterval(updateDashboard, 120000);
+  </script>
+</body>
+</html>
