@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Vollständige Namen der Mitarbeiter</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background-color: #f4f4f4;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    #staff-list {
+      max-width: 600px;
+      margin: 20px auto;
+    }
+    .staff-item {
+      font-size: 1.2em;
+      padding: 10px;
+      margin-bottom: 5px;
+      background-color: #fff;
+      border-radius: 4px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+  </style>
+</head>
+<body>
+  <h1>Vollständige Namen der Mitarbeiter</h1>
+  <div id="staff-list">Lade Daten...</div>
+  
+  <script>
+    async function fetchStaff() {
+      try {
+        const response = await fetch('/api/staff');
+        if (!response.ok) throw new Error('Fehler beim Abrufen der Staff-Daten');
+        const data = await response.json();
+        return data.data;
+      } catch (error) {
+        console.error(error);
+        return [];
+      }
+    }
+    
+    async function renderStaff() {
+      const staffList = document.getElementById('staff-list');
+      const staff = await fetchStaff();
+      staffList.innerHTML = '';
+      staff.forEach(member => {
+        const item = document.createElement('div');
+        item.className = 'staff-item';
+        // Vollständiger Name: Vorname + Nachname
+        item.textContent = `${member.firstName} ${member.lastName}`;
+        staffList.appendChild(item);
+      });
+    }
+    
+    renderStaff();
+  </script>
+</body>
+</html>
