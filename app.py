@@ -26,6 +26,10 @@ LEAVE_MAPPING = {
     'Sonstiges': 'other'
 }
 
+@app.route("/fullnames")
+def fullnames():
+    return send_from_directory(app.static_folder, "fullnames.html")
+
 @app.route("/api/staff", methods=["GET"])
 def get_staff():
     url = f"{BASE_URL}/resources/employees/employees?only_active=true&only_managers=false"
