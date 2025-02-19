@@ -2,9 +2,8 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <title>Mitarbeiter-Dashboard</title>
+  <title>Mitarbeiter-Dashboard (Kürzel)</title>
   <style>
-    /* Anzeige für Datum und Uhrzeit oben links */
     #datetime {
       position: fixed;
       top: 10px;
@@ -17,13 +16,11 @@
       border-radius: 4px;
       z-index: 100;
     }
-    /* Container für das Dashboard */
     #dashboard {
       display: flex;
       flex-wrap: wrap;
       padding: 80px 20px 20px 20px;
     }
-    /* Quadrat für jeden Mitarbeiter */
     .employee-square {
       width: 150px;
       height: 150px;
@@ -33,17 +30,17 @@
       align-items: center;
       justify-content: center;
       font-family: sans-serif;
-      font-size: 2em;
+      font-size: 1.2em;
       color: white;
       border-radius: 8px;
       border: 3px solid gray;
       background-color: #222;
     }
-    /* Element für die Initialen */
     .employee-initials {
       z-index: 1;
+      text-align: center;
+      padding: 5px;
     }
-    /* Remote-Indikator */
     .remote-indicator {
       width: 20px;
       height: 20px;
@@ -66,15 +63,12 @@
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
       const timeStr = `${hours}:${minutes} Uhr`;
-      
       const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
       const weekday = weekdays[now.getDay()];
-      
       const day = String(now.getDate()).padStart(2, '0');
       const month = String(now.getMonth() + 1).padStart(2, '0');
       const year = now.getFullYear();
       const dateStr = `${day}.${month}.${year}`;
-      
       document.getElementById('datetime').textContent = `${timeStr}, ${weekday} ${dateStr}`;
     }
     updateDateTime();
@@ -89,7 +83,7 @@
     }
     const todayStr = getTodayStr();
 
-    // Neutrale Farben (Front-End) – entsprechen den Backend-Kategorien
+    // Neutrale Farben für Kategorien (entsprechend dem Backend)
     const categoryColors = {
       vacation: '#07A2AD',
       sick: '#F5BA58',
@@ -176,9 +170,7 @@
 
         const initialsSpan = document.createElement('span');
         initialsSpan.className = 'employee-initials';
-        const firstInitial = s.firstName ? s.firstName.charAt(0).toUpperCase() : '';
-        const lastInitial = s.lastName ? s.lastName.charAt(0).toUpperCase() : '';
-        initialsSpan.textContent = firstInitial + lastInitial;
+        initialsSpan.textContent = s.initials;
         square.appendChild(initialsSpan);
 
         if (chosenCategory && categoryColors[chosenCategory]) {
