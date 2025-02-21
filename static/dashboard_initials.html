@@ -17,7 +17,7 @@
       border-radius: 4px;
       z-index: 100;
     }
-    /* Legenden-Bereich */
+    /* Legenden-Bereich – in zwei Spalten (zwei Zeilen) */
     #legend {
       margin: 70px 20px 20px 20px;
       font-family: sans-serif;
@@ -36,11 +36,14 @@
       list-style: none;
       padding: 0;
       margin: 0;
+      display: flex;
+      flex-wrap: wrap;
     }
     #legend li {
-      margin-bottom: 5px;
+      width: 50%; /* zwei Spalten */
       display: flex;
       align-items: center;
+      margin-bottom: 5px;
     }
     .legend-square {
       display: inline-block;
@@ -79,6 +82,7 @@
       color: white;
       border-radius: 8px;
       background-color: #222;
+      /* Rahmenbreite wird immer 6px gesetzt; die Farbe wird dynamisch bestimmt */
       border: 6px solid gray;
     }
     /* Element für die Initialen */
@@ -96,7 +100,18 @@
       position: absolute;
       top: 5px;
       right: 5px;
+      z-index: 3;
+    }
+    /* Status-Dreieck im oberen linken Bereich */
+    .status-triangle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 25px;
+      height: 25px;
       z-index: 2;
+      /* Das Dreieck wird mittels clip-path als isosceles right triangle geformt */
+      clip-path: polygon(0 0, 100% 0, 0 100%);
     }
   </style>
 </head>
@@ -107,38 +122,14 @@
   <div id="legend">
     <h3>Legende</h3>
     <ul>
-      <li>
-        <span class="legend-square" style="background-color: green;"></span>
-        Eingestempelt (grüner Hintergrund)
-      </li>
-      <li>
-        <span class="legend-square" style="background-color: #222;"></span>
-        Ausgestempelt (dunkelgrauer Hintergrund)
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #07A2AD; background-color: transparent;"></span>
-        Urlaub
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #F5BA58; background-color: transparent;"></span>
-        Krankheit
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #008C37; background-color: transparent;"></span>
-        Überstunden
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #FF9153; background-color: transparent;"></span>
-        Elternzeit
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #E2E2E5; background-color: transparent;"></span>
-        Sonstiges
-      </li>
-      <li>
-        <span class="legend-circle"></span>
-        Home Office
-      </li>
+      <li><span class="legend-square" style="background-color: green;"></span>Eingestempelt (grüner Hintergrund)</li>
+      <li><span class="legend-square" style="background-color: #222;"></span>Ausgestempelt (dunkelgrau)</li>
+      <li><span class="legend-square" style="border: 6px solid #07A2AD; background-color: transparent;"></span>Urlaub</li>
+      <li><span class="legend-square" style="border: 6px solid #F5BA58; background-color: transparent;"></span>Krankheit</li>
+      <li><span class="legend-square" style="border: 6px solid #008C37; background-color: transparent;"></span>Überstunden</li>
+      <li><span class="legend-square" style="border: 6px solid #FF9153; background-color: transparent;"></span>Elternzeit</li>
+      <li><span class="legend-square" style="border: 6px solid #E2E2E5; background-color: transparent;"></span>Sonstiges</li>
+      <li><span class="legend-circle"></span>Home Office</li>
     </ul>
   </div>
   
@@ -171,7 +162,7 @@
     }
     const todayStr = getTodayStr();
 
-    // Neutrale Farben (Frontend) – entsprechen den Backend-Kategorien
+    // Neutrale Farben für die Kategorien
     const categoryColors = {
       vacation: '#07A2AD',
       sick: '#F5BA58',
@@ -250,29 +241,38 @@
         const square = document.createElement('div');
         square.className = 'employee-square';
 
-        // Anwesenheitsstatus: grün = eingestempelt, sonst dunkelgrau (#222)
+        // Anwesenheitsstatus: eingestempelt (grün) oder ausgestempelt (dunkelgrau)
         if (presenceMapping[s.staffId]) {
           square.style.backgroundColor = 'green';
         } else {
           square.style.backgroundColor = '#222';
         }
 
+        // Initialen aus dem Staff-Endpunkt (nur Kürzel!)
         const initialsSpan = document.createElement('span');
         initialsSpan.className = 'employee-initials';
         initialsSpan.textContent = s.initials;
         square.appendChild(initialsSpan);
 
-        // Rahmenfarbe und -breite (immer 6px)
+        // Rahmenfarbe anhand der Time-Off-Kategorie (immer 6px breit)
         if (chosenCategory && categoryColors[chosenCategory]) {
           square.style.borderColor = categoryColors[chosenCategory];
         }
         square.style.borderWidth = '6px';
 
+        // Füge den Remote-Indikator hinzu, falls Home Office aktiv ist
         if (isHomeOffice) {
           const remoteIndicator = document.createElement('div');
           remoteIndicator.className = 'remote-indicator';
           square.appendChild(remoteIndicator);
         }
+
+        // Füge das Status-Dreieck in der oberen linken Ecke hinzu
+        const triangle = document.createElement('div');
+        triangle.className = 'status-triangle';
+        // Dreieck in derselben Farbe wie der Rahmen
+        triangle.style.backgroundColor = square.style.borderColor || 'gray';
+        square.appendChild(triangle);
 
         dashboard.appendChild(square);
       });
