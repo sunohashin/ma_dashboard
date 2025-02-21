@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Mitarbeiter-Dashboard (Kürzel)</title>
   <style>
+    /* Anzeige für Datum und Uhrzeit oben links */
     #datetime {
       position: fixed;
       top: 10px;
@@ -16,11 +17,55 @@
       border-radius: 4px;
       z-index: 100;
     }
+    /* Legenden-Bereich */
+    #legend {
+      margin: 70px 20px 20px 20px;
+      font-family: sans-serif;
+      color: #fff;
+      background-color: #333;
+      padding: 10px;
+      border-radius: 4px;
+      max-width: 400px;
+    }
+    #legend h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+    #legend ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #legend li {
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+    }
+    .legend-square {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    .legend-circle {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-color: blue;
+      border-radius: 50%;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    /* Container für das Dashboard */
     #dashboard {
       display: flex;
       flex-wrap: wrap;
-      padding: 80px 20px 20px 20px;
+      padding: 20px;
+      margin-top: 20px;
     }
+    /* Quadrat für jeden Mitarbeiter */
     .employee-square {
       width: 150px;
       height: 150px;
@@ -33,14 +78,16 @@
       font-size: 1.2em;
       color: white;
       border-radius: 8px;
-      border: 3px solid gray;
       background-color: #222;
+      border: 6px solid gray;
     }
+    /* Element für die Initialen */
     .employee-initials {
       z-index: 1;
       text-align: center;
       padding: 5px;
     }
+    /* Remote-Indikator (für Home Office) */
     .remote-indicator {
       width: 20px;
       height: 20px;
@@ -55,9 +102,50 @@
 </head>
 <body>
   <div id="datetime">Lade Datum...</div>
+  
+  <!-- Legenden-Bereich -->
+  <div id="legend">
+    <h3>Legende</h3>
+    <ul>
+      <li>
+        <span class="legend-square" style="background-color: green;"></span>
+        Eingestempelt (grüner Hintergrund)
+      </li>
+      <li>
+        <span class="legend-square" style="background-color: #222;"></span>
+        Ausgestempelt (dunkelgrauer Hintergrund)
+      </li>
+      <li>
+        <span class="legend-square" style="border: 6px solid #07A2AD; background-color: transparent;"></span>
+        Urlaub
+      </li>
+      <li>
+        <span class="legend-square" style="border: 6px solid #F5BA58; background-color: transparent;"></span>
+        Krankheit
+      </li>
+      <li>
+        <span class="legend-square" style="border: 6px solid #008C37; background-color: transparent;"></span>
+        Überstunden
+      </li>
+      <li>
+        <span class="legend-square" style="border: 6px solid #FF9153; background-color: transparent;"></span>
+        Elternzeit
+      </li>
+      <li>
+        <span class="legend-square" style="border: 6px solid #E2E2E5; background-color: transparent;"></span>
+        Sonstiges
+      </li>
+      <li>
+        <span class="legend-circle"></span>
+        Home Office
+      </li>
+    </ul>
+  </div>
+  
   <div id="dashboard">Lade Mitarbeiterdaten...</div>
 
   <script>
+    // Aktualisiert Datum, Uhrzeit und Wochentag
     function updateDateTime() {
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
@@ -83,7 +171,7 @@
     }
     const todayStr = getTodayStr();
 
-    // Neutrale Farben für Kategorien (entsprechend dem Backend)
+    // Neutrale Farben (Frontend) – entsprechen den Backend-Kategorien
     const categoryColors = {
       vacation: '#07A2AD',
       sick: '#F5BA58',
@@ -162,6 +250,7 @@
         const square = document.createElement('div');
         square.className = 'employee-square';
 
+        // Anwesenheitsstatus: grün = eingestempelt, sonst dunkelgrau (#222)
         if (presenceMapping[s.staffId]) {
           square.style.backgroundColor = 'green';
         } else {
@@ -173,16 +262,11 @@
         initialsSpan.textContent = s.initials;
         square.appendChild(initialsSpan);
 
+        // Rahmenfarbe und -breite (immer 6px)
         if (chosenCategory && categoryColors[chosenCategory]) {
           square.style.borderColor = categoryColors[chosenCategory];
-          if (chosenCategory === 'sick') {
-            square.style.borderWidth = '6px';
-          } else {
-            square.style.borderWidth = '3px';
-          }
-        } else {
-          square.style.borderWidth = '3px';
         }
+        square.style.borderWidth = '6px';
 
         if (isHomeOffice) {
           const remoteIndicator = document.createElement('div');
