@@ -17,56 +17,12 @@
       border-radius: 4px;
       z-index: 100;
     }
-    /* Legenden-Bereich – in zwei Spalten (zwei Zeilen) */
-    #legend {
-      margin: 70px 20px 20px 20px;
-      font-family: sans-serif;
-      color: #fff;
-      background-color: #333;
-      padding: 10px;
-      border-radius: 4px;
-      max-width: 400px;
-    }
-    #legend h3 {
-      margin-top: 0;
-      margin-bottom: 10px;
-      font-size: 1.2em;
-    }
-    #legend ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-wrap: wrap;
-    }
-    #legend li {
-      width: 50%; /* zwei Spalten */
-      display: flex;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-    .legend-square {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      margin-right: 10px;
-      vertical-align: middle;
-    }
-    .legend-circle {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      background-color: blue;
-      border-radius: 50%;
-      margin-right: 10px;
-      vertical-align: middle;
-    }
     /* Container für das Dashboard */
     #dashboard {
       display: flex;
       flex-wrap: wrap;
       padding: 20px;
-      margin-top: 20px;
+      margin-top: 80px;
     }
     /* Quadrat für jeden Mitarbeiter */
     .employee-square {
@@ -82,7 +38,6 @@
       color: white;
       border-radius: 8px;
       background-color: #222;
-      /* Rahmenbreite wird immer 6px gesetzt; die Farbe wird dynamisch bestimmt */
       border: 6px solid gray;
     }
     /* Element für die Initialen */
@@ -110,15 +65,59 @@
       width: 25px;
       height: 25px;
       z-index: 2;
-      /* Das Dreieck wird mittels clip-path als isosceles right triangle geformt */
       clip-path: polygon(0 0, 100% 0, 0 100%);
+    }
+    /* Legenden-Bereich unterhalb des Dashboards */
+    #legend {
+      margin: 20px;
+      font-family: sans-serif;
+      color: #fff;
+      background-color: #333;
+      padding: 10px;
+      border-radius: 4px;
+      max-width: 400px;
+    }
+    #legend h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+    #legend ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    #legend li {
+      width: 50%;
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .legend-square {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      margin-right: 10px;
+      vertical-align: middle;
+    }
+    .legend-circle {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      background-color: blue;
+      border-radius: 50%;
+      margin-right: 10px;
+      vertical-align: middle;
     }
   </style>
 </head>
 <body>
   <div id="datetime">Lade Datum...</div>
+  <div id="dashboard">Lade Mitarbeiterdaten...</div>
   
-  <!-- Legenden-Bereich -->
+  <!-- Legenden-Bereich unten -->
   <div id="legend">
     <h3>Legende</h3>
     <ul>
@@ -132,11 +131,8 @@
       <li><span class="legend-circle"></span>Home Office</li>
     </ul>
   </div>
-  
-  <div id="dashboard">Lade Mitarbeiterdaten...</div>
 
   <script>
-    // Aktualisiert Datum, Uhrzeit und Wochentag
     function updateDateTime() {
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
@@ -162,7 +158,6 @@
     }
     const todayStr = getTodayStr();
 
-    // Neutrale Farben für die Kategorien
     const categoryColors = {
       vacation: '#07A2AD',
       sick: '#F5BA58',
@@ -241,36 +236,31 @@
         const square = document.createElement('div');
         square.className = 'employee-square';
 
-        // Anwesenheitsstatus: eingestempelt (grün) oder ausgestempelt (dunkelgrau)
         if (presenceMapping[s.staffId]) {
           square.style.backgroundColor = 'green';
         } else {
           square.style.backgroundColor = '#222';
         }
 
-        // Initialen aus dem Staff-Endpunkt (nur Kürzel!)
         const initialsSpan = document.createElement('span');
         initialsSpan.className = 'employee-initials';
         initialsSpan.textContent = s.initials;
         square.appendChild(initialsSpan);
 
-        // Rahmenfarbe anhand der Time-Off-Kategorie (immer 6px breit)
         if (chosenCategory && categoryColors[chosenCategory]) {
           square.style.borderColor = categoryColors[chosenCategory];
         }
         square.style.borderWidth = '6px';
 
-        // Füge den Remote-Indikator hinzu, falls Home Office aktiv ist
         if (isHomeOffice) {
           const remoteIndicator = document.createElement('div');
           remoteIndicator.className = 'remote-indicator';
           square.appendChild(remoteIndicator);
         }
-
-        // Füge das Status-Dreieck in der oberen linken Ecke hinzu
+        
+        // Füge das Status-Dreieck hinzu
         const triangle = document.createElement('div');
         triangle.className = 'status-triangle';
-        // Dreieck in derselben Farbe wie der Rahmen
         triangle.style.backgroundColor = square.style.borderColor || 'gray';
         square.appendChild(triangle);
 
