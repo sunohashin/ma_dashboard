@@ -16,8 +16,9 @@
       border-radius: 4px;
       z-index: 100;
     }
+    /* Legenden-Bereich in zwei Spalten, unten */
     #legend {
-      margin: 70px 20px 20px 20px;
+      margin: 20px;
       font-family: sans-serif;
       color: #fff;
       background-color: #333;
@@ -34,11 +35,14 @@
       list-style: none;
       padding: 0;
       margin: 0;
+      display: flex;
+      flex-wrap: wrap;
     }
     #legend li {
-      margin-bottom: 5px;
+      width: 50%;
       display: flex;
       align-items: center;
+      margin-bottom: 5px;
     }
     .legend-square {
       display: inline-block;
@@ -90,52 +94,38 @@
       position: absolute;
       top: 5px;
       right: 5px;
+      z-index: 3;
+    }
+    .status-triangle {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 25px;
+      height: 25px;
       z-index: 2;
+      clip-path: polygon(0 0, 100% 0, 0 100%);
     }
   </style>
 </head>
 <body>
   <div id="datetime">Lade Datum...</div>
   
+  <div id="dashboard">Lade Mitarbeiterdaten...</div>
+  
+  <!-- Legenden-Bereich unten -->
   <div id="legend">
     <h3>Legende</h3>
     <ul>
-      <li>
-        <span class="legend-square" style="background-color: green;"></span>
-        Eingestempelt (grüner Hintergrund)
-      </li>
-      <li>
-        <span class="legend-square" style="background-color: #222;"></span>
-        Ausgestempelt (dunkelgrauer Hintergrund)
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #07A2AD; background-color: transparent;"></span>
-        Urlaub
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #F5BA58; background-color: transparent;"></span>
-        Krankheit
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #008C37; background-color: transparent;"></span>
-        Überstunden
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #FF9153; background-color: transparent;"></span>
-        Elternzeit
-      </li>
-      <li>
-        <span class="legend-square" style="border: 6px solid #E2E2E5; background-color: transparent;"></span>
-        Sonstiges
-      </li>
-      <li>
-        <span class="legend-circle"></span>
-        Home Office
-      </li>
+      <li><span class="legend-square" style="background-color: green;"></span>Eingestempelt (grün)</li>
+      <li><span class="legend-square" style="background-color: #222;"></span>Ausgestempelt (dunkelgrau)</li>
+      <li><span class="legend-square" style="border: 6px solid #07A2AD; background-color: transparent;"></span>Urlaub</li>
+      <li><span class="legend-square" style="border: 6px solid #F5BA58; background-color: transparent;"></span>Krankheit</li>
+      <li><span class="legend-square" style="border: 6px solid #008C37; background-color: transparent;"></span>Überstunden</li>
+      <li><span class="legend-square" style="border: 6px solid #FF9153; background-color: transparent;"></span>Elternzeit</li>
+      <li><span class="legend-square" style="border: 6px solid #E2E2E5; background-color: transparent;"></span>Sonstiges</li>
+      <li><span class="legend-circle"></span>Home Office</li>
     </ul>
   </div>
-  
-  <div id="dashboard">Lade Mitarbeiterdaten...</div>
 
   <script>
     function updateDateTime() {
@@ -262,6 +252,11 @@
           remoteIndicator.className = 'remote-indicator';
           square.appendChild(remoteIndicator);
         }
+
+        const triangle = document.createElement('div');
+        triangle.className = 'status-triangle';
+        triangle.style.backgroundColor = square.style.borderColor || 'gray';
+        square.appendChild(triangle);
 
         dashboard.appendChild(square);
       });
