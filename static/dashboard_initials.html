@@ -1,43 +1,256 @@
-<script>
-// Add this debugging function
-function logApiResponses() {
-  console.log("Debugging API responses:");
-
-  // Debug staff API
-  fetch('/api/staff')
-    .then(response => response.json())
-    .then(data => {
-      console.log("Staff API response:", data);
-    })
-    .catch(error => console.error("Staff API error:", error));
-
-  // Debug time_off API for today
-  const today = new Date().toISOString().split('T')[0];
-  fetch(`/api/time_off?from=${today}&to=${today}`)
-    .then(response => response.json())
-    .then(data => {
-      console.log("Time Off API response:", data);
-    })
-    .catch(error => console.error("Time Off API error:", error));
-
-  // Debug presence API with a few employee IDs if available
-  window.setTimeout(() => {
-    if (employeeData && employeeData.length > 0) {
-      const sampleIds = employeeData.slice(0, 3).map(emp => emp.ownId);
-      const params = new URLSearchParams();
-      sampleIds.forEach(id => params.append('ownIds[]', id));
-
-      fetch(`/api/presence?${params.toString()}`)
-        .then(response => response.json())
-        .then(data => {
-          console.log("Presence API response for sample IDs:", data);
-        })
-        .catch(error => console.error("Presence API error:", error));
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Mitarbeiter-Dashboard (Kürzel)</title>
+  <style>
+    /* Anzeige für Datum und Uhrzeit oben links */
+    #datetime {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      font-family: sans-serif;
+      font-size: 1.2em;
+      color: #fff;
+      background-color: #222;
+      padding: 5px 10px;
+      border-radius: 4px;
+      z-index: 100;
     }
-  }, 1000);
-}
+    /* Container für das Dashboard */
+    #dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+      margin-top: 80px;
+    }
+    /* Quadrat für jeden Mitarbeiter */
+    .employee-square {
+      width: 150px;
+      height: 150px;
+      margin: 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+      font-size: 1.2em;
+      color: white;
+      border-radius: 8px;
+      background-color: #222;
+      border: 6px solid gray;
+    }
+    /* Styling für den Home-Office-Indikator */
+    .employee-square.home-office::after {
+      content: "🏠";
+      font-size: 1.3em;
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+    }
+    /* Status-Farben */
+    .employee-square.present {
+      border-color: #4CAF50;
+    }
+    .employee-square.vacation {
+      border-color: #2196F3;
+    }
+    .employee-square.sick {
+      border-color: #F44336;
+    }
+    .employee-square.overtime {
+      border-color: #FF9800;
+    }
+    .employee-square.parental {
+      border-color: #9C27B0;
+    }
+    .employee-square.other {
+      border-color: #607D8B;
+    }
+    /* Legenden-Bereich in zwei Spalten, unten */
+    #legend {
+      margin: 20px;
+      font-family: sans-serif;
+      color: #fff;
+      background-color: #333;
+      padding: 10px;
+      border-radius: 4px;
+      max-width: 400px;
+    }
+    #legend h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+      font-size: 1.2em;
+    }
+    #legend ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+    }
+    #legend li {
+      width: 50%;
+      display: flex;
+      align-items: center;
+      margin-bottom: 5px;
+    }
+    .legend-square {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid;
+      margin-right: 5px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body style="background-color: #121212;">
+  <!-- Anzeige für Datum und Uhrzeit -->
+  <div id="datetime"></div>
+  
+  <!-- Container für das Dashboard -->
+  <div id="dashboard"></div>
+  
+  <!-- Legenden-Bereich -->
+  <div id="legend">
+    <h3>Legende</h3>
+    <ul>
+      <li><span class="legend-square" style="border-color: #4CAF50;"></span> Anwesend</li>
+      <li><span class="legend-square" style="border-color: #2196F3;"></span> Urlaub</li>
+      <li><span class="legend-square" style="border-color: #F44336;"></span> Krank</li>
+      <li><span class="legend-square" style="border-color: #FF9800;"></span> Überstunden-Ausgleich</li>
+      <li><span class="legend-square" style="border-color: #9C27B0;"></span> Elternzeit</li>
+      <li><span class="legend-square" style="border-color: #607D8B;"></span> Sonstiges</li>
+      <li><span class="legend-square home-office" style="border-color: gray; position: relative;"><span style="position: absolute; bottom: -5px; right: -5px; font-size: 0.9em;">🏠</span></span> Home Office</li>
+    </ul>
+  </div>
 
-// Call the debug function after the page loads
-window.addEventListener('DOMContentLoaded', logApiResponses);
-</script>
+  <script>
+    // Format-Funktion für Datum und Uhrzeit
+    function updateDateTime() {
+      const now = new Date();
+      const options = { 
+        weekday: 'long', 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      document.getElementById('datetime').textContent = now.toLocaleDateString('de-DE', options);
+    }
+    
+    // Aktualisiere Datum und Uhrzeit alle 60 Sekunden
+    updateDateTime();
+    setInterval(updateDateTime, 60000);
+
+    // Hauptfunktion zum Abrufen und Anzeigen der Daten
+    async function fetchAndDisplayData() {
+      try {
+        // Hole Mitarbeiterdaten
+        const staffResponse = await fetch('/api/staff');
+        const staffData = await staffResponse.json();
+        
+        // Hole die Abwesenheitsdaten für heute
+        const today = new Date().toISOString().split('T')[0];
+        const timeOffResponse = await fetch(`/api/time_off?from=${today}&to=${today}`);
+        const timeOffData = await timeOffResponse.json();
+        
+        // Bereite Parameter für Präsenz-API vor
+        const ownIds = staffData.data.map(emp => emp.ownId);
+        const params = new URLSearchParams();
+        ownIds.forEach(id => params.append('ownIds[]', id));
+        
+        // Hole Präsenzdaten
+        const presenceResponse = await fetch(`/api/presence?${params.toString()}`);
+        const presenceData = await presenceResponse.json();
+        
+        // Dashboard-Container leeren
+        const dashboardContainer = document.getElementById('dashboard');
+        dashboardContainer.innerHTML = '';
+        
+        // Mitarbeiter-Kacheln erstellen
+        staffData.data.forEach(employee => {
+          // Suche nach Abwesenheitsdaten für diesen Mitarbeiter
+          const timeOff = timeOffData.data.find(to => to.ownId === employee.ownId);
+          
+          // Suche nach Präsenzdaten für diesen Mitarbeiter
+          const presence = presenceData.data.find(p => p.ownId === employee.ownId);
+          
+          // Erstelle Kachel
+          const square = document.createElement('div');
+          square.className = 'employee-square';
+          square.textContent = employee.initials;
+          
+          // Setze Status-Klasse
+          if (timeOff && !timeOff.isHomeOffice) {
+            square.classList.add(timeOff.category);
+          } else if (presence && presence.present) {
+            square.classList.add('present');
+          }
+          
+          // Setze Home-Office-Indikator
+          if (timeOff && timeOff.isHomeOffice) {
+            square.classList.add('home-office');
+          }
+          
+          // Füge Kachel zum Dashboard hinzu
+          dashboardContainer.appendChild(square);
+        });
+      } catch (error) {
+        console.error('Fehler beim Abrufen der Daten:', error);
+      }
+    }
+    
+    // Initial Daten laden
+    fetchAndDisplayData();
+    
+    // Regelmäßig aktualisieren (alle 5 Minuten)
+    setInterval(fetchAndDisplayData, 300000);
+  </script>
+
+  <script>
+  // Add this debugging function
+  function logApiResponses() {
+    console.log("Debugging API responses:");
+
+    // Debug staff API
+    fetch('/api/staff')
+      .then(response => response.json())
+      .then(data => {
+        console.log("Staff API response:", data);
+        
+        // Now use this staff data to debug the presence API
+        if (data && data.data && data.data.length > 0) {
+          const sampleIds = data.data.slice(0, 3).map(emp => emp.ownId);
+          const params = new URLSearchParams();
+          sampleIds.forEach(id => params.append('ownIds[]', id));
+
+          console.log("Debugging presence API with sample IDs:", sampleIds);
+          
+          fetch(`/api/presence?${params.toString()}`)
+            .then(response => response.json())
+            .then(presenceData => {
+              console.log("Presence API response for sample IDs:", presenceData);
+            })
+            .catch(error => console.error("Presence API error:", error));
+        }
+      })
+      .catch(error => console.error("Staff API error:", error));
+
+    // Debug time_off API for today
+    const today = new Date().toISOString().split('T')[0];
+    fetch(`/api/time_off?from=${today}&to=${today}`)
+      .then(response => response.json())
+      .then(data => {
+        console.log("Time Off API response:", data);
+      })
+      .catch(error => console.error("Time Off API error:", error));
+  }
+
+  // Call the debug function after the page loads
+  window.addEventListener('DOMContentLoaded', logApiResponses);
+  </script>
 </body>
+</html>
