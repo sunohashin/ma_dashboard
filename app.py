@@ -70,6 +70,7 @@ def get_staff_full():
 # Endpunkt: Liefert Time-Off-Daten (Leave-Daten) für einen bestimmten Zeitraum
 @app.route("/api/time_off", methods=["GET"])
 def get_time_off():
+    print("DEBUG: Time off API called")
     from_date = request.args.get("from")
     to_date = request.args.get("to")
     url = f"{BASE_URL}/resources/timeoff/leaves?from={from_date}&to={to_date}&include_leave_type=true&include_duration=true"
@@ -105,6 +106,7 @@ def get_time_off():
 # Endpunkt: Liefert Präsenzdaten basierend auf offenen Schichten
 @app.route("/api/presence", methods=["GET"])
 def get_presence():
+    print("DEBUG: Presence API called")
     # Das Frontend übermittelt eigene IDs (ownIds[]), nicht die API-ID
     own_ids = request.args.getlist("ownIds[]")
     # Erzeuge ein Mapping: eigene ID -> API-ID
@@ -119,23 +121,51 @@ def get_presence():
     for oid in own_ids:
         if oid in mapping:
             api_ids.append(mapping[oid])
+
+    # Debug logging
+    print(f"DEBUG: Requested own_ids: {own_ids}")
+    print(f"DEBUG: Mapped to API IDs: {api_ids}")
+
+    # Don't proceed if no valid IDs
+    if not api_ids:
+        print("DEBUG: No valid employee IDs found!")
+        return jsonify({"data": [], "error": "No valid employee IDs found"})
+
     params = []
     for aid in api_ids:
         params.append(f"employee_ids[]={aid}")
     query = "&".join(params)
     url = f"{BASE_URL}/resources/attendance/open_shifts?{query}"
+
+    print(f"DEBUG: Calling API with URL: {url}")
     response = requests.get(url, headers=HEADERS)
+
+    # Check if API call succeeded
+    if response.status_code != 200:
+        print(f"DEBUG: API error: {response.status_code}, {response.text}")
+        return jsonify({"data": [], "error": f"API error: {response.status_code}"})
+
     data = response.json().get("data", [])
+    print(f"DEBUG: API returned {len(data)} records")
+
     presence = {}
     for record in data:
-        if record.get("status") == "opened":
-            presence[record.get("employee_id")] = True
+        employee_id = record.get("employee_id")
+        status = record.get("status")
+        print(f"DEBUG: Record - Employee ID: {employee_id}, Status: {status}")
+
+        if status == "opened":
+            presence[employee_id] = True
+
     result = []
     for oid in own_ids:
         api_id = mapping.get(oid)
+        present_status = presence.get(api_id, False)
+        print(f"DEBUG: Setting employee {oid} (API ID: {api_id}) presence to {present_status}")
+
         result.append({
             "ownId": oid,
-            "present": presence.get(api_id, False)
+            "present": present_status
         })
     return jsonify({"data": result})
 
