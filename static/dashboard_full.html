@@ -4,6 +4,11 @@
   <meta charset="UTF-8">
   <title>Mitarbeiter-Dashboard (Volle Namen)</title>
   <style>
+    body {
+      background-color: #121212;
+      margin: 0;
+      padding: 0;
+    }
     #datetime {
       position: fixed;
       top: 10px;
@@ -16,20 +21,90 @@
       border-radius: 4px;
       z-index: 100;
     }
-    /* Legenden-Bereich in zwei Spalten, unten */
+    #version-switch {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-family: sans-serif;
+      z-index: 100;
+    }
+    #version-switch a {
+      color: #aaa;
+      background-color: #222;
+      padding: 5px 10px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 0.9em;
+    }
+    #version-switch a:hover {
+      color: #fff;
+      background-color: #333;
+    }
+    #dashboard {
+      display: flex;
+      flex-wrap: wrap;
+      padding: 20px;
+      margin-top: 50px;
+    }
+    .employee-square {
+      width: 150px;
+      height: 150px;
+      margin: 10px;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: sans-serif;
+      font-size: 0.95em;
+      color: white;
+      border-radius: 8px;
+      background-color: #222;
+      border: 6px solid gray;
+      text-align: center;
+      padding: 5px;
+      box-sizing: border-box;
+      transition: background-color 0.3s, border-color 0.3s;
+    }
+    .employee-square.present {
+      background-color: #2e7d32;
+    }
+    .employee-square.vacation {
+      border-color: #07A2AD;
+    }
+    .employee-square.sick {
+      border-color: #F5BA58;
+    }
+    .employee-square.overtime {
+      border-color: #008C37;
+    }
+    .employee-square.parental {
+      border-color: #FF9153;
+    }
+    .employee-square.other-leave {
+      border-color: #E2E2E5;
+    }
+    .remote-indicator {
+      width: 20px;
+      height: 20px;
+      background-color: #2196F3;
+      border-radius: 50%;
+      position: absolute;
+      top: 5px;
+      right: 5px;
+    }
     #legend {
       margin: 20px;
       font-family: sans-serif;
       color: #fff;
       background-color: #333;
-      padding: 10px;
+      padding: 10px 15px;
       border-radius: 4px;
-      max-width: 400px;
+      max-width: 500px;
     }
     #legend h3 {
       margin-top: 0;
       margin-bottom: 10px;
-      font-size: 1.2em;
+      font-size: 1.1em;
     }
     #legend ul {
       list-style: none;
@@ -42,88 +117,45 @@
       width: 50%;
       display: flex;
       align-items: center;
-      margin-bottom: 5px;
+      margin-bottom: 8px;
+      font-size: 0.9em;
     }
-    .legend-square {
+    .legend-box {
       display: inline-block;
       width: 20px;
       height: 20px;
-      margin-right: 10px;
-      vertical-align: middle;
+      margin-right: 8px;
+      border-radius: 3px;
+      flex-shrink: 0;
     }
     .legend-circle {
       display: inline-block;
       width: 20px;
       height: 20px;
-      background-color: blue;
+      background-color: #2196F3;
       border-radius: 50%;
-      margin-right: 10px;
-      vertical-align: middle;
-    }
-    #dashboard {
-      display: flex;
-      flex-wrap: wrap;
-      padding: 20px;
-      margin-top: 20px;
-    }
-    .employee-square {
-      width: 150px;
-      height: 150px;
-      margin: 10px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: sans-serif;
-      font-size: 1em;
-      color: white;
-      border-radius: 8px;
-      background-color: #222;
-      border: 6px solid gray;
-      text-align: center;
-      padding: 5px;
-    }
-    .employee-fullname {
-      z-index: 1;
-    }
-    .remote-indicator {
-      width: 20px;
-      height: 20px;
-      background-color: blue;
-      border-radius: 50%;
-      position: absolute;
-      top: 5px;
-      right: 5px;
-      z-index: 3;
-    }
-    .status-triangle {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 25px;
-      height: 25px;
-      z-index: 2;
-      clip-path: polygon(0 0, 100% 0, 0 100%);
+      margin-right: 8px;
+      flex-shrink: 0;
     }
   </style>
 </head>
 <body>
-  <div id="datetime">Lade Datum...</div>
-  
-  <div id="dashboard">Lade Mitarbeiterdaten...</div>
-  
-  <!-- Legenden-Bereich unten -->
+  <div id="datetime"></div>
+  <div id="version-switch"><a href="/">Zur Kürzel-Ansicht</a></div>
+
+  <div id="dashboard"></div>
+
   <div id="legend">
     <h3>Legende</h3>
     <ul>
-      <li><span class="legend-square" style="background-color: green;"></span>Eingestempelt (grün)</li>
-      <li><span class="legend-square" style="background-color: #222;"></span>Ausgestempelt (dunkelgrau)</li>
-      <li><span class="legend-square" style="border: 6px solid #07A2AD; background-color: transparent;"></span>Urlaub</li>
-      <li><span class="legend-square" style="border: 6px solid #F5BA58; background-color: transparent;"></span>Krankheit</li>
-      <li><span class="legend-square" style="border: 6px solid #008C37; background-color: transparent;"></span>Überstunden</li>
-      <li><span class="legend-square" style="border: 6px solid #FF9153; background-color: transparent;"></span>Elternzeit</li>
-      <li><span class="legend-square" style="border: 6px solid #E2E2E5; background-color: transparent;"></span>Sonstiges</li>
-      <li><span class="legend-circle"></span>Home Office</li>
+      <li><span class="legend-box" style="background-color: #2e7d32;"></span> Anwesend</li>
+      <li><span class="legend-box" style="background-color: #222;"></span> Nicht anwesend</li>
+      <li><span class="legend-box" style="border: 3px solid #07A2AD;"></span> Urlaub</li>
+      <li><span class="legend-box" style="border: 3px solid #F5BA58;"></span> Krank</li>
+      <li><span class="legend-box" style="border: 3px solid #008C37;"></span> Überstunden</li>
+      <li><span class="legend-box" style="border: 3px solid #FF9153;"></span> Elternzeit</li>
+      <li><span class="legend-box" style="border: 3px solid #E2E2E5;"></span> Sonstiges</li>
+      <li><span class="legend-circle"></span> Home Office</li>
     </ul>
   </div>
 
@@ -132,138 +164,112 @@
       const now = new Date();
       const hours = String(now.getHours()).padStart(2, '0');
       const minutes = String(now.getMinutes()).padStart(2, '0');
-      const timeStr = `${hours}:${minutes} Uhr`;
       const weekdays = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
-      const weekday = weekdays[now.getDay()];
       const day = String(now.getDate()).padStart(2, '0');
       const month = String(now.getMonth() + 1).padStart(2, '0');
-      const year = now.getFullYear();
-      const dateStr = `${day}.${month}.${year}`;
-      document.getElementById('datetime').textContent = `${timeStr}, ${weekday} ${dateStr}`;
+      document.getElementById('datetime').textContent =
+        `${hours}:${minutes} Uhr, ${weekdays[now.getDay()]} ${day}.${month}.${now.getFullYear()}`;
     }
     updateDateTime();
-    setInterval(updateDateTime, 1000);
+    setInterval(updateDateTime, 30000);
 
     function getTodayStr() {
-      const today = new Date();
-      const yyyy = today.getFullYear();
-      const mm = String(today.getMonth() + 1).padStart(2, '0');
-      const dd = String(today.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd}`;
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
-    const todayStr = getTodayStr();
 
-    const categoryColors = {
-      vacation: '#07A2AD',
-      sick: '#F5BA58',
-      overtime: '#008C37',
-      parental: '#FF9153',
-      other: '#E2E2E5'
+    const categoryClasses = {
+      vacation: 'vacation',
+      sick: 'sick',
+      overtime: 'overtime',
+      parental: 'parental',
+      other: 'other-leave'
     };
 
     const priorityOrder = ['sick', 'overtime', 'parental', 'vacation', 'other'];
 
-    async function fetchStaffFull() {
-      try {
-        const response = await fetch('/api/staff_full');
-        if (!response.ok) throw new Error('Fehler beim Abrufen der Staff-Daten: ' + response.status);
-        const json = await response.json();
-        return json.data;
-      } catch (error) {
-        console.error(error);
-        return [];
-      }
-    }
-
-    async function fetchTimeOff() {
-      try {
-        const response = await fetch(`/api/time_off?from=${todayStr}&to=${todayStr}`);
-        if (!response.ok) throw new Error('Fehler beim Abrufen der Time-Off-Daten: ' + response.status);
-        const json = await response.json();
-        return json.data;
-      } catch (error) {
-        console.error(error);
-        return [];
-      }
-    }
-
-    async function fetchPresence(staffIds) {
-      const params = new URLSearchParams();
-      staffIds.forEach(id => params.append('employee_ids[]', id));
-      try {
-        const response = await fetch('/api/presence?' + params.toString());
-        if (!response.ok) throw new Error('Fehler beim Abrufen der Presence-Daten: ' + response.status);
-        const json = await response.json();
-        return json.data;
-      } catch (error) {
-        console.error(error);
-        return [];
-      }
-    }
-
     async function updateDashboard() {
-      const staff = await fetchStaffFull();
-      const timeOffRecords = await fetchTimeOff();
-      const staffIds = staff.map(s => s.staffId);
-      const presenceData = await fetchPresence(staffIds);
-      const presenceMapping = {};
-      presenceData.forEach(rec => {
-        presenceMapping[rec.staffId] = rec.present;
-      });
+      try {
+        const todayStr = getTodayStr();
 
-      const dashboard = document.getElementById('dashboard');
-      dashboard.innerHTML = '';
+        // Alle Daten parallel laden
+        const [staffRes, timeOffRes] = await Promise.all([
+          fetch('/api/staff_full'),
+          fetch(`/api/time_off?from=${todayStr}&to=${todayStr}`)
+        ]);
 
-      staff.forEach(s => {
-        const records = timeOffRecords.filter(r => r.staffId === s.staffId);
-        let chosenCategory = null;
-        let isHomeOffice = false;
-        records.forEach(r => {
-          if (r.isHomeOffice) {
-            isHomeOffice = true;
-          } else if (r.category) {
-            if (!chosenCategory || priorityOrder.indexOf(r.category) < priorityOrder.indexOf(chosenCategory)) {
-              chosenCategory = r.category;
+        if (!staffRes.ok || !timeOffRes.ok) {
+          console.error('Fehler beim Laden der Daten');
+          return;
+        }
+
+        const staffData = (await staffRes.json()).data || [];
+        const timeOffData = (await timeOffRes.json()).data || [];
+
+        // Präsenzdaten mit ownIds laden
+        const ownIds = staffData.map(s => s.ownId);
+        const params = new URLSearchParams();
+        ownIds.forEach(id => params.append('ownIds[]', id));
+
+        const presenceRes = await fetch(`/api/presence?${params.toString()}`);
+        const presenceData = presenceRes.ok ? (await presenceRes.json()).data || [] : [];
+
+        // Mappings erstellen
+        const presenceMap = {};
+        presenceData.forEach(p => { presenceMap[p.ownId] = p.present; });
+
+        const dashboard = document.getElementById('dashboard');
+        dashboard.innerHTML = '';
+
+        staffData.forEach(emp => {
+          const records = timeOffData.filter(r => r.ownId === emp.ownId);
+          let chosenCategory = null;
+          let isHomeOffice = false;
+
+          records.forEach(r => {
+            if (r.isHomeOffice) {
+              isHomeOffice = true;
+            } else if (r.category) {
+              if (!chosenCategory || priorityOrder.indexOf(r.category) < priorityOrder.indexOf(chosenCategory)) {
+                chosenCategory = r.category;
+              }
             }
+          });
+
+          const square = document.createElement('div');
+          square.className = 'employee-square';
+
+          // Präsenz: Hintergrundfarbe grün wenn anwesend
+          if (presenceMap[emp.ownId]) {
+            square.classList.add('present');
           }
+
+          // Abwesenheitskategorie: Rahmenfarbe
+          if (chosenCategory && categoryClasses[chosenCategory]) {
+            square.classList.add(categoryClasses[chosenCategory]);
+          }
+
+          // Name anzeigen
+          const nameSpan = document.createElement('span');
+          nameSpan.textContent = emp.fullName;
+          square.appendChild(nameSpan);
+
+          // Home-Office-Indikator
+          if (isHomeOffice) {
+            const indicator = document.createElement('div');
+            indicator.className = 'remote-indicator';
+            square.appendChild(indicator);
+          }
+
+          dashboard.appendChild(square);
         });
-
-        const square = document.createElement('div');
-        square.className = 'employee-square';
-
-        if (presenceMapping[s.staffId]) {
-          square.style.backgroundColor = 'green';
-        } else {
-          square.style.backgroundColor = '#222';
-        }
-
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'employee-fullname';
-        nameSpan.textContent = s.fullName;
-        square.appendChild(nameSpan);
-
-        if (chosenCategory && categoryColors[chosenCategory]) {
-          square.style.borderColor = categoryColors[chosenCategory];
-        }
-        square.style.borderWidth = '6px';
-
-        if (isHomeOffice) {
-          const remoteIndicator = document.createElement('div');
-          remoteIndicator.className = 'remote-indicator';
-          square.appendChild(remoteIndicator);
-        }
-
-        const triangle = document.createElement('div');
-        triangle.className = 'status-triangle';
-        triangle.style.backgroundColor = square.style.borderColor || 'gray';
-        square.appendChild(triangle);
-
-        dashboard.appendChild(square);
-      });
+      } catch (error) {
+        console.error('Fehler beim Aktualisieren des Dashboards:', error);
+      }
     }
 
     updateDashboard();
-    setInterval(updateDashboard, 120000);
+    setInterval(updateDashboard, 300000);
   </script>
 </body>
 </html>
