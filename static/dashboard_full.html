@@ -92,6 +92,58 @@
       top: 5px;
       right: 5px;
     }
+    #statistics {
+      margin: 20px;
+      font-family: sans-serif;
+      color: #fff;
+      background-color: #1a1a2e;
+      padding: 15px 20px;
+      border-radius: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+    }
+    #statistics h3 {
+      margin: 0;
+      font-size: 1.1em;
+      width: 100%;
+    }
+    .stat-item {
+      background-color: #222;
+      padding: 10px 16px;
+      border-radius: 6px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 120px;
+    }
+    .stat-item .stat-value {
+      font-size: 1.6em;
+      font-weight: bold;
+    }
+    .stat-item .stat-percent {
+      font-size: 0.85em;
+      color: #aaa;
+      margin-top: 2px;
+    }
+    .stat-item .stat-label {
+      font-size: 0.8em;
+      color: #ccc;
+      margin-top: 4px;
+    }
+    .stat-item.stat-total {
+      border-left: 4px solid #fff;
+    }
+    .stat-item.stat-present {
+      border-left: 4px solid #2e7d32;
+    }
+    .stat-item.stat-absent {
+      border-left: 4px solid #F5BA58;
+    }
+    .stat-item.stat-homeoffice {
+      border-left: 4px solid #2196F3;
+    }
     #legend {
       margin: 20px;
       font-family: sans-serif;
@@ -144,6 +196,10 @@
   <div id="version-switch"><a href="/">Zur Kürzel-Ansicht</a></div>
 
   <div id="dashboard"></div>
+
+  <div id="statistics">
+    <h3>Statistik</h3>
+  </div>
 
   <div id="legend">
     <h3>Legende</h3>
@@ -263,6 +319,56 @@
 
           dashboard.appendChild(square);
         });
+
+        // Statistik berechnen und anzeigen
+        const totalCount = staffData.length;
+        let presentCount = 0;
+        let absentCount = 0;
+        let homeOfficeCount = 0;
+
+        staffData.forEach(emp => {
+          const records = timeOffData.filter(r => r.ownId === emp.ownId);
+          let hasAbsence = false;
+          let hasHomeOffice = false;
+
+          records.forEach(r => {
+            if (r.isHomeOffice) {
+              hasHomeOffice = true;
+            } else if (r.category) {
+              hasAbsence = true;
+            }
+          });
+
+          if (presenceMap[emp.ownId]) presentCount++;
+          if (hasAbsence) absentCount++;
+          if (hasHomeOffice) homeOfficeCount++;
+        });
+
+        const pct = (count) => totalCount > 0 ? Math.round((count / totalCount) * 100) : 0;
+
+        const statsContainer = document.getElementById('statistics');
+        statsContainer.innerHTML = `
+          <h3>Statistik</h3>
+          <div class="stat-item stat-total">
+            <span class="stat-value">${totalCount}</span>
+            <span class="stat-label">Gesamt-Mitarbeiter</span>
+          </div>
+          <div class="stat-item stat-present">
+            <span class="stat-value">${presentCount}</span>
+            <span class="stat-percent">${pct(presentCount)}% der Gesamt-MA</span>
+            <span class="stat-label">Anwesend</span>
+          </div>
+          <div class="stat-item stat-absent">
+            <span class="stat-value">${absentCount}</span>
+            <span class="stat-percent">${pct(absentCount)}% der Gesamt-MA</span>
+            <span class="stat-label">Abwesenheiten</span>
+          </div>
+          <div class="stat-item stat-homeoffice">
+            <span class="stat-value">${homeOfficeCount}</span>
+            <span class="stat-percent">${pct(homeOfficeCount)}% der Gesamt-MA</span>
+            <span class="stat-label">Home Office</span>
+          </div>
+        `;
       } catch (error) {
         console.error('Fehler beim Aktualisieren des Dashboards:', error);
       }
