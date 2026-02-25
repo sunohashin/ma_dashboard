@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Abwesenheitsbericht</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      background-color: #121212;
+      color: #e0e0e0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 { font-size: 1.5em; margin: 0; }
+
+    /* Navigation */
+    .nav-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .nav-links { display: flex; gap: 8px; }
+    .nav-links a {
+      color: #aaa;
+      background-color: #222;
+      padding: 6px 12px;
+      border-radius: 4px;
+      text-decoration: none;
+      font-size: 0.85em;
+      transition: all 0.2s;
+    }
+    .nav-links a:hover { color: #fff; background-color: #333; }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .controls label { font-size: 0.9em; color: #aaa; }
+    select, input[type="text"] {
+      background: #1e1e1e;
+      color: #fff;
+      border: 1px solid #444;
+      padding: 7px 12px;
+      border-radius: 4px;
+      font-size: 0.9em;
+      outline: none;
+    }
+    select:focus, input[type="text"]:focus { border-color: #07A2AD; }
+    input[type="text"] { width: 220px; }
+
+    /* Category Tabs */
+    .category-tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+    .cat-tab {
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      background: #1e1e1e;
+      color: #888;
+      border: 1px solid #333;
+      font-size: 0.85em;
+      transition: all 0.2s;
+      user-select: none;
+    }
+    .cat-tab:hover { color: #ccc; border-color: #555; }
+    .cat-tab.active { background: #1a1a2e; color: #fff; border-color: #07A2AD; }
+
+    /* Table */
+    .table-container {
+      overflow-x: auto;
+      border-radius: 8px;
+      border: 1px solid #333;
+      max-height: calc(100vh - 200px);
+      overflow-y: auto;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 950px;
+    }
+    thead th {
+      background: #1a1a2e;
+      padding: 10px 8px;
+      font-size: 0.85em;
+      font-weight: 600;
+      text-align: center;
+      border-bottom: 2px solid #07A2AD;
+      cursor: pointer;
+      user-select: none;
+      white-space: nowrap;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    thead th:hover { background: #252545; }
+    thead th .sort-arrow { font-size: 0.7em; margin-left: 3px; opacity: 0.4; }
+    thead th.sorted .sort-arrow { opacity: 1; color: #07A2AD; }
+
+    tbody td {
+      padding: 8px;
+      text-align: center;
+      border-bottom: 1px solid #2a2a2a;
+      font-size: 0.85em;
+    }
+    tbody tr:hover { background: #1a1a1a; }
+    tbody tr:hover td.emp-name { background: #1a1a1a; }
+
+    td.emp-name {
+      text-align: left;
+      font-weight: 500;
+      white-space: nowrap;
+      padding-left: 12px;
+      position: sticky;
+      left: 0;
+      background: #121212;
+      z-index: 5;
+    }
+
+    th:first-child {
+      text-align: left;
+      padding-left: 12px;
+      position: sticky;
+      left: 0;
+      z-index: 15;
+    }
+
+    td.has-val { color: #fff; font-weight: 600; }
+    td.val-vacation { background: rgba(7, 162, 173, 0.15); }
+    td.val-sick { background: rgba(245, 186, 88, 0.15); }
+    td.val-overtime { background: rgba(0, 140, 55, 0.15); }
+    td.val-parental { background: rgba(255, 145, 83, 0.15); }
+    td.val-other { background: rgba(226, 226, 229, 0.08); }
+    td.val-mixed { background: rgba(7, 162, 173, 0.08); }
+
+    td.total-col {
+      font-weight: 700;
+      border-left: 2px solid #444;
+    }
+
+    tfoot td {
+      padding: 10px 8px;
+      text-align: center;
+      font-weight: 700;
+      background: #1a1a2e;
+      border-top: 2px solid #07A2AD;
+      font-size: 0.85em;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+    }
+    tfoot td:first-child {
+      text-align: left;
+      padding-left: 12px;
+      position: sticky;
+      left: 0;
+      z-index: 15;
+    }
+
+    .empty-val { color: #444; }
+    .loading { text-align: center; padding: 60px; color: #666; font-size: 1.1em; }
+    .error-msg { color: #f44; padding: 20px; text-align: center; }
+
+    /* Legend */
+    .legend {
+      margin-top: 15px;
+      font-size: 0.8em;
+      color: #777;
+      display: flex;
+      gap: 18px;
+      flex-wrap: wrap;
+    }
+    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="nav-bar">
+    <h1>Abwesenheitsbericht</h1>
+    <div class="nav-links">
+      <a href="/">Dashboard (Kürzel)</a>
+      <a href="/fullnames">Dashboard (Namen)</a>
+    </div>
+  </div>
+
+  <div class="controls">
+    <label for="year-select">Jahr:</label>
+    <select id="year-select"></select>
+    <input type="text" id="search-input" placeholder="Mitarbeiter suchen...">
+  </div>
+
+  <div class="category-tabs" id="category-tabs"></div>
+
+  <div class="table-container">
+    <div id="table-area"><div class="loading">Daten werden geladen...</div></div>
+  </div>
+
+  <div class="legend" id="legend"></div>
+
+  <script>
+    const MONTHS = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
+    const CATEGORY_STYLE = {
+      'Urlaub':           { cls: 'vacation', color: '#07A2AD' },
+      'Krankheit':        { cls: 'sick',     color: '#F5BA58' },
+      'Krankheit ohne AU':{ cls: 'sick',     color: '#F5BA58' },
+      'Kindkrank':        { cls: 'sick',     color: '#F5BA58' },
+      'Überstunden':      { cls: 'overtime', color: '#008C37' },
+      'Elternzeit':       { cls: 'parental', color: '#FF9153' },
+      'Sonstiges':        { cls: 'other',    color: '#E2E2E5' }
+    };
+
+    let reportData = [];
+    let categories = [];
+    let activeCategory = 'Alle';
+    let sortCol = 0;
+    let sortAsc = true;
+    let searchTerm = '';
+
+    // Jahr-Auswahl befüllen
+    const yearSelect = document.getElementById('year-select');
+    const currentYear = new Date().getFullYear();
+    for (let y = currentYear + 1; y >= currentYear - 5; y--) {
+      const opt = document.createElement('option');
+      opt.value = y;
+      opt.textContent = y;
+      if (y === currentYear) opt.selected = true;
+      yearSelect.appendChild(opt);
+    }
+    yearSelect.addEventListener('change', () => loadData(yearSelect.value));
+
+    document.getElementById('search-input').addEventListener('input', (e) => {
+      searchTerm = e.target.value.toLowerCase();
+      renderTable();
+    });
+
+    function buildCategoryTabs() {
+      const container = document.getElementById('category-tabs');
+      container.innerHTML = '';
+
+      const allTab = document.createElement('span');
+      allTab.className = 'cat-tab' + (activeCategory === 'Alle' ? ' active' : '');
+      allTab.textContent = 'Alle';
+      allTab.onclick = () => selectCategory('Alle');
+      container.appendChild(allTab);
+
+      categories.forEach(cat => {
+        const tab = document.createElement('span');
+        tab.className = 'cat-tab' + (activeCategory === cat ? ' active' : '');
+        tab.textContent = cat;
+        tab.onclick = () => selectCategory(cat);
+        container.appendChild(tab);
+      });
+    }
+
+    function buildLegend() {
+      const container = document.getElementById('legend');
+      const items = [
+        { label: 'Urlaub',           color: '#07A2AD' },
+        { label: 'Krankheit',        color: '#F5BA58' },
+        { label: 'Krankheit ohne AU',color: '#E8A63E' },
+        { label: 'Kindkrank',        color: '#D4922E' },
+        { label: 'Überstunden',      color: '#008C37' },
+        { label: 'Elternzeit',       color: '#FF9153' },
+        { label: 'Sonstiges',        color: '#E2E2E5' }
+      ];
+      container.innerHTML = items.map(i =>
+        `<span class="legend-item"><span class="legend-swatch" style="background:${i.color};"></span>${i.label}</span>`
+      ).join('');
+    }
+
+    function selectCategory(cat) {
+      activeCategory = cat;
+      document.querySelectorAll('.cat-tab').forEach(t => {
+        t.classList.toggle('active', t.textContent === cat);
+      });
+      renderTable();
+    }
+
+    function getCellValue(emp, month) {
+      const m = emp.months[String(month)];
+      if (!m) return 0;
+      if (activeCategory === 'Alle') {
+        return Object.values(m).reduce((s, v) => s + v, 0);
+      }
+      return m[activeCategory] || 0;
+    }
+
+    function getCellTooltip(emp, month) {
+      const m = emp.months[String(month)];
+      if (!m) return '';
+      const parts = Object.entries(m)
+        .filter(([, v]) => v > 0)
+        .map(([k, v]) => `${k}: ${Number.isInteger(v) ? v : v.toFixed(1)}`);
+      return parts.join('\n');
+    }
+
+    function getCellColorClass(emp, month) {
+      if (activeCategory !== 'Alle') {
+        const s = CATEGORY_STYLE[activeCategory];
+        return s ? 'val-' + s.cls : 'val-other';
+      }
+      const m = emp.months[String(month)];
+      if (!m) return 'val-mixed';
+      const entries = Object.entries(m).filter(([, v]) => v > 0);
+      if (entries.length === 0) return 'val-mixed';
+      if (entries.length === 1) {
+        const s = CATEGORY_STYLE[entries[0][0]];
+        return s ? 'val-' + s.cls : 'val-other';
+      }
+      return 'val-mixed';
+    }
+
+    function getRowTotal(emp) {
+      let total = 0;
+      for (let m = 1; m <= 12; m++) total += getCellValue(emp, m);
+      return total;
+    }
+
+    function getFilteredData() {
+      let data = reportData;
+      if (searchTerm) {
+        data = data.filter(e => e.fullName.toLowerCase().includes(searchTerm));
+      }
+      return data;
+    }
+
+    function getSortedData(data) {
+      return [...data].sort((a, b) => {
+        let va, vb;
+        if (sortCol === 0) {
+          va = a.fullName.toLowerCase();
+          vb = b.fullName.toLowerCase();
+        } else if (sortCol <= 12) {
+          va = getCellValue(a, sortCol);
+          vb = getCellValue(b, sortCol);
+        } else {
+          va = getRowTotal(a);
+          vb = getRowTotal(b);
+        }
+        if (va < vb) return sortAsc ? -1 : 1;
+        if (va > vb) return sortAsc ? 1 : -1;
+        return 0;
+      });
+    }
+
+    function fmtVal(v) {
+      return Number.isInteger(v) ? String(v) : v.toFixed(1);
+    }
+
+    function renderTable() {
+      const area = document.getElementById('table-area');
+      const filtered = getFilteredData();
+      const sorted = getSortedData(filtered);
+
+      if (sorted.length === 0) {
+        area.innerHTML = '<div class="loading">Keine Daten vorhanden.</div>';
+        return;
+      }
+
+      let html = '<table><thead><tr>';
+
+      // Spaltenköpfe
+      const headers = ['Mitarbeiter', ...MONTHS, 'Gesamt'];
+      headers.forEach((h, i) => {
+        const sc = sortCol === i ? ' sorted' : '';
+        const arrow = sortCol === i ? (sortAsc ? '▲' : '▼') : '▲';
+        html += `<th class="${sc}" onclick="sortBy(${i})">${h}<span class="sort-arrow">${arrow}</span></th>`;
+      });
+      html += '</tr></thead><tbody>';
+
+      // Datenzeilen
+      sorted.forEach(emp => {
+        html += '<tr>';
+        html += `<td class="emp-name">${escHtml(emp.fullName)}</td>`;
+        for (let m = 1; m <= 12; m++) {
+          const val = getCellValue(emp, m);
+          if (val > 0) {
+            const colorCls = getCellColorClass(emp, m);
+            const tooltip = activeCategory === 'Alle' ? getCellTooltip(emp, m) : '';
+            const titleAttr = tooltip ? ` title="${escAttr(tooltip)}"` : '';
+            html += `<td class="has-val ${colorCls}"${titleAttr}>${fmtVal(val)}</td>`;
+          } else {
+            html += '<td class="empty-val">\u2013</td>';
+          }
+        }
+        const total = getRowTotal(emp);
+        if (total > 0) {
+          html += `<td class="total-col has-val">${fmtVal(total)}</td>`;
+        } else {
+          html += '<td class="total-col empty-val">\u2013</td>';
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody><tfoot><tr>';
+      html += '<td>Summe</td>';
+      let grandTotal = 0;
+      for (let m = 1; m <= 12; m++) {
+        let sum = 0;
+        sorted.forEach(emp => { sum += getCellValue(emp, m); });
+        grandTotal += sum;
+        html += `<td>${sum > 0 ? fmtVal(sum) : '\u2013'}</td>`;
+      }
+      html += `<td class="total-col">${grandTotal > 0 ? fmtVal(grandTotal) : '\u2013'}</td>`;
+      html += '</tr></tfoot></table>';
+
+      area.innerHTML = html;
+    }
+
+    function sortBy(col) {
+      if (sortCol === col) {
+        sortAsc = !sortAsc;
+      } else {
+        sortCol = col;
+        sortAsc = col === 0; // Namen aufsteigend, Zahlen absteigend
+      }
+      renderTable();
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    function escAttr(s) {
+      return s.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    async function loadData(year) {
+      const area = document.getElementById('table-area');
+      area.innerHTML = '<div class="loading">Daten werden geladen...</div>';
+
+      try {
+        const res = await fetch(`/api/leave_report?year=${year}`);
+        if (!res.ok) throw new Error('API-Fehler');
+        const json = await res.json();
+        if (json.error) throw new Error(json.error);
+        reportData = json.data || [];
+        categories = json.categories || [];
+        buildCategoryTabs();
+        buildLegend();
+        renderTable();
+      } catch (e) {
+        area.innerHTML = `<div class="error-msg">Fehler beim Laden der Daten: ${escHtml(e.message)}</div>`;
+        console.error(e);
+      }
+    }
+
+    // Initial laden
+    loadData(currentYear);
+  </script>
+</body>
+</html>
