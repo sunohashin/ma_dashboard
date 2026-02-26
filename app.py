@@ -54,6 +54,8 @@ LEAVE_TYPE_DETAIL = {
 ALL_CATEGORIES = ['Urlaub', 'Krankheit', 'Krankheit ohne AU', 'Kindkrank',
                   'Überstunden', 'Elternzeit', 'Sonstiges']
 
+SICK_CATEGORIES = {'Krankheit', 'Krankheit ohne AU', 'Kindkrank'}
+
 def fetch_active_employees():
     """Holt alle aktiven Mitarbeiter von der Factorial-API."""
     url = f"{BASE_URL}/resources/employees/employees?only_active=true&only_managers=false"
@@ -286,6 +288,105 @@ def get_leave_report():
 
     return jsonify({"data": result, "categories": ALL_CATEGORIES})
 
+# Endpunkt: Krankheitszeiten-Übersicht – Einzelne Krankheitsperioden je Mitarbeiter
+@app.route("/api/sick_report", methods=["GET"])
+def get_sick_report():
+    year = request.args.get("year", str(date.today().year))
+    try:
+        year_int = int(year)
+    except ValueError:
+        return jsonify({"data": [], "error": "Ungültiges Jahr"}), 400
+
+    from_date = f"{year_int}-01-01"
+    to_date = f"{year_int}-12-31"
+
+    try:
+        employees = fetch_active_employees()
+    except requests.RequestException as e:
+        logger.error("Fehler beim Abrufen der Mitarbeiter: %s", e)
+        return jsonify({"data": [], "error": "API-Fehler"}), 502
+
+    emp_map = {}
+    for emp in employees:
+        api_id = emp.get("id")
+        own_id = generate_own_id(api_id)
+        full_name = f"{emp.get('first_name', '')} {emp.get('last_name', '')}".strip()
+        emp_map[api_id] = {"ownId": own_id, "fullName": full_name}
+
+    try:
+        leaves = fetch_all_leaves(from_date, to_date)
+    except requests.RequestException as e:
+        logger.error("Fehler beim Abrufen der Leave-Daten: %s", e)
+        return jsonify({"data": [], "error": "API-Fehler"}), 502
+
+    emp_periods = {info["ownId"]: [] for info in emp_map.values()}
+
+    for leave in leaves:
+        emp_id = leave.get("employee_id")
+        if emp_id not in emp_map:
+            continue
+
+        leave_type = leave.get("leave_type_name") or leave.get("translated_name")
+        if not leave_type:
+            continue
+
+        lt_lower = leave_type.lower().strip()
+        if lt_lower in ("home office", "wfh"):
+            continue
+
+        category = LEAVE_TYPE_DETAIL.get(lt_lower, "Sonstiges")
+        if category not in SICK_CATEGORIES:
+            continue
+
+        own_id = emp_map[emp_id]["ownId"]
+        start_str = leave.get("start_on")
+        finish_str = leave.get("finish_on")
+        is_half = leave.get("half_day", False)
+
+        if not start_str or not finish_str:
+            continue
+
+        try:
+            start_d = date.fromisoformat(start_str)
+            finish_d = date.fromisoformat(finish_str)
+        except (ValueError, TypeError):
+            continue
+
+        working_days = 0
+        if is_half and start_d == finish_d:
+            if start_d.year == year_int and start_d.weekday() < 5:
+                working_days = 0.5
+        else:
+            current = start_d
+            while current <= finish_d:
+                if current.year == year_int and current.weekday() < 5:
+                    working_days += 1
+                current += timedelta(days=1)
+
+        if working_days > 0:
+            emp_periods[own_id].append({
+                "category": category,
+                "startDate": start_str,
+                "endDate": finish_str,
+                "workingDays": working_days,
+                "halfDay": is_half
+            })
+
+    result = []
+    for api_id, info in emp_map.items():
+        own_id = info["ownId"]
+        periods = sorted(emp_periods[own_id], key=lambda p: p["startDate"])
+        total_days = sum(p["workingDays"] for p in periods)
+        result.append({
+            "ownId": own_id,
+            "fullName": info["fullName"],
+            "periods": periods,
+            "totalDays": total_days
+        })
+
+    result.sort(key=lambda x: (-x["totalDays"], x["fullName"]))
+    return jsonify({"data": result})
+
 # Liefert das statische Frontend für die Initialen-Version
 @app.route("/")
 def index():
@@ -300,6 +401,11 @@ def fullnames():
 @app.route("/leave-report")
 def leave_report():
     return send_from_directory(app.static_folder, "leave_report.html")
+
+# Liefert die Krankheitszeiten-Übersicht
+@app.route("/sick-report")
+def sick_report():
+    return send_from_directory(app.static_folder, "sick_report.html")
 
 if __name__ == '__main__':
     app.run(debug=True)
