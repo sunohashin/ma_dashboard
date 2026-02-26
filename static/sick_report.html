@@ -109,42 +109,41 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      max-height: calc(100vh - 260px);
-      overflow-y: auto;
-      padding-right: 4px;
+      padding-bottom: 20px;
     }
 
     .emp-card {
       background: #1a1a1a;
       border: 1px solid #333;
       border-radius: 8px;
-      overflow: hidden;
     }
 
     .emp-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
+      padding: 14px 18px;
       background: #1a1a2e;
-      border-bottom: 1px solid #333;
+      border-radius: 8px 8px 0 0;
+      border-bottom: 2px solid #07A2AD;
     }
     .emp-name {
       font-weight: 600;
-      font-size: 1em;
+      font-size: 1.05em;
     }
     .emp-total {
       font-size: 0.9em;
       color: #F5BA58;
       font-weight: 600;
+      white-space: nowrap;
     }
 
     .emp-body {
-      padding: 8px 16px 12px;
+      padding: 10px 18px 16px;
     }
 
     .month-group {
-      margin-bottom: 6px;
+      margin-bottom: 10px;
     }
     .month-group:last-child { margin-bottom: 0; }
 
@@ -152,18 +151,26 @@
       font-size: 0.8em;
       font-weight: 600;
       color: #07A2AD;
-      margin-bottom: 3px;
-      padding-top: 4px;
+      margin-bottom: 4px;
+      padding-top: 6px;
+      border-bottom: 1px solid #2a2a2a;
+      padding-bottom: 3px;
     }
 
     .period-row {
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      padding: 2px 0 2px 12px;
-      font-size: 0.85em;
+      padding: 4px 0 4px 14px;
+      font-size: 0.88em;
+      line-height: 1.5;
     }
-    .period-info { color: #ccc; }
+    .period-info {
+      color: #ccc;
+      min-width: 0;
+      overflow-wrap: break-word;
+      word-break: break-word;
+    }
     .period-info .cat-name { color: #e0e0e0; }
     .period-info .cat-krankheit { color: #F5BA58; }
     .period-info .cat-ohneAU { color: #E8A63E; }
@@ -171,12 +178,13 @@
     .period-days {
       color: #aaa;
       white-space: nowrap;
-      margin-left: 12px;
+      margin-left: 16px;
+      flex-shrink: 0;
       font-variant-numeric: tabular-nums;
     }
 
     .emp-no-sick {
-      padding: 10px 16px;
+      padding: 12px 18px 16px;
       color: #555;
       font-size: 0.85em;
       font-style: italic;
@@ -216,6 +224,8 @@
   <div class="controls">
     <label for="year-select">Jahr:</label>
     <select id="year-select"></select>
+    <label for="month-select">Monat:</label>
+    <select id="month-select"></select>
     <input type="text" id="search-input" placeholder="Mitarbeiter suchen...">
     <label class="toggle-label">
       <input type="checkbox" id="show-all-toggle">
@@ -249,8 +259,11 @@
       'Kindkrank': 'cat-kindkrank'
     };
 
+    const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+
     let reportData = [];
     let activeCategory = 'Alle';
+    let activeMonth = 0; // 0 = Alle, 1-12 = Monat
     let searchTerm = '';
     let showAll = false;
 
@@ -266,6 +279,24 @@
       yearSelect.appendChild(opt);
     }
     yearSelect.addEventListener('change', () => loadData(yearSelect.value));
+
+    // Month select
+    const monthSelect = document.getElementById('month-select');
+    const allOpt = document.createElement('option');
+    allOpt.value = 0;
+    allOpt.textContent = 'Alle';
+    allOpt.selected = true;
+    monthSelect.appendChild(allOpt);
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = MONTHS_SHORT[m - 1];
+      monthSelect.appendChild(opt);
+    }
+    monthSelect.addEventListener('change', (e) => {
+      activeMonth = parseInt(e.target.value, 10);
+      renderCards();
+    });
 
     // Search
     document.getElementById('search-input').addEventListener('input', (e) => {
@@ -326,8 +357,14 @@
     }
 
     function filterPeriods(periods) {
-      if (activeCategory === 'Alle') return periods;
-      return periods.filter(p => p.category === activeCategory);
+      return periods.filter(p => {
+        if (activeCategory !== 'Alle' && p.category !== activeCategory) return false;
+        if (activeMonth > 0) {
+          const month = parseInt(p.startDate.split('-')[1], 10);
+          if (month !== activeMonth) return false;
+        }
+        return true;
+      });
     }
 
     function getFilteredData() {

@@ -66,6 +66,7 @@ def fetch_active_employees():
 def fetch_all_leaves(from_date, to_date):
     """Holt alle Leave-Daten für einen Zeitraum mit Paginierung."""
     all_leaves = []
+    seen_ids = set()
     page = 1
     while page <= 50:
         url = (f"{BASE_URL}/resources/timeoff/leaves?"
@@ -77,7 +78,13 @@ def fetch_all_leaves(from_date, to_date):
         data = resp.json().get("data", [])
         if not data:
             break
-        all_leaves.extend(data)
+        for leave in data:
+            leave_id = leave.get("id")
+            if leave_id and leave_id in seen_ids:
+                continue
+            if leave_id:
+                seen_ids.add(leave_id)
+            all_leaves.append(leave)
         page += 1
     return all_leaves
 
@@ -234,7 +241,15 @@ def get_leave_report():
             "months": {str(m): {} for m in range(1, 13)}
         }
 
+    seen_leave_ids = set()
     for leave in leaves:
+        # Duplikate anhand der Leave-ID vermeiden
+        leave_id = leave.get("id")
+        if leave_id:
+            if leave_id in seen_leave_ids:
+                continue
+            seen_leave_ids.add(leave_id)
+
         emp_id = leave.get("employee_id")
         if emp_id not in emp_map:
             continue
@@ -320,6 +335,7 @@ def get_sick_report():
         return jsonify({"data": [], "error": "API-Fehler"}), 502
 
     emp_periods = {info["ownId"]: [] for info in emp_map.values()}
+    seen_periods = set()
 
     for leave in leaves:
         emp_id = leave.get("employee_id")
@@ -345,6 +361,12 @@ def get_sick_report():
 
         if not start_str or not finish_str:
             continue
+
+        # Duplikate vermeiden: gleicher MA + Zeitraum + Kategorie
+        period_key = (own_id, start_str, finish_str, category, is_half)
+        if period_key in seen_periods:
+            continue
+        seen_periods.add(period_key)
 
         try:
             start_d = date.fromisoformat(start_str)
