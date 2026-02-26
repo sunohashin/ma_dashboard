@@ -42,6 +42,8 @@
       align-items: center;
       margin-bottom: 15px;
       flex-wrap: wrap;
+      position: relative;
+      z-index: 10;
     }
     .controls label { font-size: 0.9em; color: #aaa; }
     select, input[type="text"] {
@@ -161,12 +163,14 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
+      gap: 16px;
       padding: 4px 0 4px 14px;
       font-size: 0.88em;
       line-height: 1.5;
     }
     .period-info {
       color: #ccc;
+      flex: 1;
       min-width: 0;
       overflow-wrap: break-word;
       word-break: break-word;
@@ -178,7 +182,6 @@
     .period-days {
       color: #aaa;
       white-space: nowrap;
-      margin-left: 16px;
       flex-shrink: 0;
       font-variant-numeric: tabular-nums;
     }
@@ -225,7 +228,21 @@
     <label for="year-select">Jahr:</label>
     <select id="year-select"></select>
     <label for="month-select">Monat:</label>
-    <select id="month-select"></select>
+    <select id="month-select">
+      <option value="0" selected>Alle</option>
+      <option value="1">Jan</option>
+      <option value="2">Feb</option>
+      <option value="3">Mär</option>
+      <option value="4">Apr</option>
+      <option value="5">Mai</option>
+      <option value="6">Jun</option>
+      <option value="7">Jul</option>
+      <option value="8">Aug</option>
+      <option value="9">Sep</option>
+      <option value="10">Okt</option>
+      <option value="11">Nov</option>
+      <option value="12">Dez</option>
+    </select>
     <input type="text" id="search-input" placeholder="Mitarbeiter suchen...">
     <label class="toggle-label">
       <input type="checkbox" id="show-all-toggle">
@@ -259,8 +276,6 @@
       'Kindkrank': 'cat-kindkrank'
     };
 
-    const MONTHS_SHORT = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-
     let reportData = [];
     let activeCategory = 'Alle';
     let activeMonth = 0; // 0 = Alle, 1-12 = Monat
@@ -278,21 +293,15 @@
       if (y === currentYear) opt.selected = true;
       yearSelect.appendChild(opt);
     }
-    yearSelect.addEventListener('change', () => loadData(yearSelect.value));
+    yearSelect.addEventListener('change', () => {
+      // Monatsfilter auf "Alle" zurücksetzen bei Jahreswechsel
+      monthSelect.value = '0';
+      activeMonth = 0;
+      loadData(yearSelect.value);
+    });
 
-    // Month select
+    // Month select (Optionen sind im HTML definiert)
     const monthSelect = document.getElementById('month-select');
-    const allOpt = document.createElement('option');
-    allOpt.value = 0;
-    allOpt.textContent = 'Alle';
-    allOpt.selected = true;
-    monthSelect.appendChild(allOpt);
-    for (let m = 1; m <= 12; m++) {
-      const opt = document.createElement('option');
-      opt.value = m;
-      opt.textContent = MONTHS_SHORT[m - 1];
-      monthSelect.appendChild(opt);
-    }
     monthSelect.addEventListener('change', (e) => {
       activeMonth = parseInt(e.target.value, 10);
       renderCards();
